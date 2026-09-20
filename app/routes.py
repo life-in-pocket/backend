@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Response
 from typing import Annotated
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -36,3 +36,33 @@ async def create_block(task: TaskCreate, db: SessionDep):
 
     logger.info("Data successfully created")
     return new_task
+
+@router_task.put("/{task_id}", response_model=TaskResponse, status_code=status.HTTP_200_OK)
+async def change_block(task_id: int, db: SessionDep, task: TaskCreate):
+    changed_task = await db.get(Task, task_id)
+    changed_task.title = task.title
+    changed_task.time = task.time
+    changed_task.target = task.target
+    await db.commit()
+    await db.refresh(changed_task)
+    logger.info(f"Data with id: {task_id}, successfully updated")
+    return changed_task
+
+
+
+@router_task.patch("/{task_id}", response_model=TaskResponse, status_code=status.HTTP_200_OK)
+async def update_time(task_id: int, db: SessionDep, task: TaskCreate):
+    update_task = await db.get(Task, task_id)
+    update_task.time = task.time
+    await db.commit()
+    await db.refresh(update_task)
+    logger.info(f"Time with id: {task_id}, successfully updated")
+    return update_task
+
+@router_task.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_block(task_id: int, db: SessionDep):
+    delete_task = await db.get(Task, task_id)
+    await db.delete(delete_task)
+    await db.commit()
+    logger.info(f"Data with id: {task_id}, successfully deleted")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
