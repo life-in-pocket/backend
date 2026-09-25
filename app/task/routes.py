@@ -5,9 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
 from sqlalchemy.orm import joinedload
 
-from app.database import get_db
-from app.schema import DayTaskResponse, DayTaskCreate, BlockCreate, DayTaskTimeUpdate, DayTaskDescriptionUpdate
-from app.model import Task, DayTask
+from app.dependencies import get_db
+from app.task.schema import DayTaskResponse, BlockCreate, DayTaskTimeUpdate, DayTaskDescriptionUpdate
+from app.task.model import Task, DayTask
 import datetime
 
 
@@ -54,6 +54,10 @@ async def create_block(task: BlockCreate, db: SessionDep):
 @router_task.put("/{block_id}", response_model=DayTaskResponse, status_code=status.HTTP_200_OK)
 async def change_block(block_id: int, db: SessionDep, block: BlockCreate):
     changed_task = await db.get(DayTask, block_id, options=[joinedload(DayTask.task)])
+
+    if changed_task is None:
+        raise HTTPException(status_code=404, detail="Day task not found")
+
     changed_task.task.title = block.title
     changed_task.time = block.time
     changed_task.target = block.target
@@ -78,6 +82,10 @@ async def update_description(task_id: int, db: SessionDep, task: DayTaskDescript
 @router_task.patch("/{task_id}/time", response_model=DayTaskResponse, status_code=status.HTTP_200_OK)
 async def update_time(task_id: int, db: SessionDep, task: DayTaskTimeUpdate):
     update_task = await db.get(DayTask, task_id, options=[joinedload(DayTask.task)])
+
+    if update_task is None:
+        raise HTTPException(status_code=404, detail="Day task not found")
+
     update_task.time = task.time
     await db.commit()
     await db.refresh(update_task)
