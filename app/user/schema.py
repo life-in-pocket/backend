@@ -7,8 +7,9 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
-class UserRegister(UserBase):
-    hashed_password: str
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
 
 class UserResponse(UserBase):
     id: int
