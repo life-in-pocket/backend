@@ -1,11 +1,10 @@
 from fastapi import APIRouter, Depends, status, Response, HTTPException
 from typing import Annotated
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, contains_eager
 
-from app.dependencies import get_db
+from app.dependencies import SessionDep, CurrentUser
 from app.task.schema import DayTaskResponse, BlockCreate, DayTaskTimeUpdate, DayTaskDescriptionUpdate
 from app.task.model import Task, DayTask
 import datetime
@@ -13,15 +12,16 @@ import datetime
 
 router_task = APIRouter(tags=["Tasks"], prefix="/days")
 
-SessionDep = Annotated[AsyncSession, Depends(get_db)]
-
-@router_task.get("/{date}/tasks", response_model=list[DayTaskResponse], status_code=status.HTTP_200_OK)
-async def get_block(date: datetime.date, db: SessionDep):
-    stmt = select(DayTask).where(DayTask.date == date).options(joinedload(DayTask.task))
-    result = await db.execute(stmt)
-    tasks = result.scalars().all()
-    logger.info("Data successfully fetched")
-    return tasks
+@router_task.get("/{date}/tasks", response_model=list[DayTaskResponse])
+async def get_block(date: datetime.date, db: SessionDep, current_user: CurrentUser):
+    stmt = (
+        select(DayTask)
+        .join(DayTask.task)
+        .where(DayTask.date == date, Task.owner_id == current_user.id)
+        .options(contains_eager(DayTask.task))
+    )
+    result = await db.scalars(stmt)
+    return result.all()
 
 @router_task.post("/day-tasks", response_model=DayTaskResponse, status_code=status.HTTP_201_CREATED)
 async def create_block(task: BlockCreate, db: SessionDep):

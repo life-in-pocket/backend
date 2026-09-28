@@ -1,20 +1,7 @@
 import datetime
 from pydantic import BaseModel
-from pydantic import Field
+from pydantic import Field, ConfigDict
 
-class TaskCreate(BaseModel):
-    title: str
-    target_default: float
-
-class TaskResponse(TaskCreate):
-    id: int
-
-class BlockCreate(BaseModel):
-    title: str
-    time: float
-    target: float
-    date: datetime.date = Field(default_factory=datetime.date.today)
-    
 class DayTaskBase(BaseModel):
     is_active: bool = True
     time: float
@@ -25,14 +12,43 @@ class DayTaskCreate(DayTaskBase):
     task_id: int
     date: datetime.date = Field(default_factory=datetime.date.today)
 
-class DayTaskTimeUpdate(BaseModel):
-    time: float = Field(..., ge=0.0)
+class TaskResponse(BaseModel):
+    id: int
+    title: str
+    target_default: float
 
-class DayTaskDescriptionUpdate(BaseModel):
-    description: str | None = None
+    model_config = ConfigDict(from_attributes=True)
 
-class DayTaskResponse(DayTaskBase):
+
+class DayTaskResponse(BaseModel):
     id: int
     task_id: int
     date: datetime.date
+    is_active: bool
+    time: float
+    target: float
+    description: str | None
     task: TaskResponse
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class BlockCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=100)
+    time: float = Field(default=0.0, ge=0.0, le=24)
+    target: float = Field(gt=0.0, le=24)
+    date: datetime.date = Field(default_factory=datetime.date.today)
+
+
+class BlockUpdate(BaseModel):
+    title: str = Field(min_length=1, max_length=100)
+    time: float = Field(ge=0.0, le=24)
+    target: float = Field(gt=0.0, le=24)
+
+
+class DayTaskTimeUpdate(BaseModel):
+    time: float = Field(ge=0.0, le=24)
+
+
+class DayTaskDescriptionUpdate(BaseModel):
+    description: str | None = Field(default=None, max_length=2000)
