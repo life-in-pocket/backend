@@ -7,8 +7,10 @@ from sqlalchemy.orm import joinedload, contains_eager
 from app.dependencies import SessionDep, CurrentUser
 from app.task.schema import DayTaskResponse, BlockCreate, DayTaskTimeUpdate, DayTaskDescriptionUpdate
 from app.task.model import Task, DayTask
+from app.task.service import OwnedDayTask
 import datetime
 
+from app.user.schema import UserResponse
 
 router_task = APIRouter(tags=["Tasks"], prefix="/days")
 
@@ -24,8 +26,9 @@ async def get_block(date: datetime.date, db: SessionDep, current_user: CurrentUs
     return result.all()
 
 @router_task.post("/day-tasks", response_model=DayTaskResponse, status_code=status.HTTP_201_CREATED)
-async def create_block(task: BlockCreate, db: SessionDep):
+async def create_block(task: BlockCreate, db: SessionDep, user: CurrentUser):
     new_task = Task(
+        owner_id=user.id,
         title=task.title,
         target_default=task.target,
     )
@@ -42,60 +45,46 @@ async def create_block(task: BlockCreate, db: SessionDep):
     await db.commit()
 
     stmt = (
-        select(DayTask, Task.title)
-        .where(DayTask.id == new_day_task.id)
-        .options(joinedload(DayTask.task))
+        select(DayTask)
+        .join(DayTask.task)
+        .where(DayTask.id == new_day_task.id, Task.owner_id == user.id)
+        .options(contains_eager(DayTask.task))
     )
 
     result = await db.scalar(stmt)
     logger.info("Data successfully created")
     return result
 
-@router_task.put("/{block_id}", response_model=DayTaskResponse, status_code=status.HTTP_200_OK)
-async def change_block(block_id: int, db: SessionDep, block: BlockCreate):
-    changed_task = await db.get(DayTask, block_id, options=[joinedload(DayTask.task)])
-
-    if changed_task is None:
-        raise HTTPException(status_code=404, detail="Day task not found")
-
+@router_task.put("/{day_task_id}", response_model=DayTaskResponse, status_code=status.HTTP_200_OK)
+async def change_block(changed_task: OwnedDayTask, db: SessionDep, block: BlockCreate):
     changed_task.task.title = block.title
     changed_task.time = block.time
     changed_task.target = block.target
     await db.commit()
-    await db.refresh(changed_task)
-    logger.info(f"Data with id: {block_id}, successfully updated")
+    logger.info(f"Data with id: {changed_task.id}, successfully updated")
     return changed_task
 
-@router_task.put("/{task_id}/description", response_model=DayTaskResponse, status_code=status.HTTP_200_OK)
-async def update_description(task_id: int, db: SessionDep, task: DayTaskDescriptionUpdate):
-    update_task = await db.get(DayTask, task_id, options=[joinedload(DayTask.task)])
-
-    if update_task is None:
-        raise HTTPException(status_code=404, detail="Task not found")
-
+@router_task.put("/{day_task_id}/description", response_model=DayTaskResponse, status_code=status.HTTP_200_OK)
+async def update_description(update_task: OwnedDayTask, db: SessionDep, task: DayTaskDescriptionUpdate):
     update_task.description = task.description
     await db.commit()
-    await db.refresh(update_task)
-    logger.info(f"Description with id: {task_id}, successfully updated")
+    logger.info(f"Description with id: {update_task.id}, successfully updated")
     return update_task
 
-@router_task.patch("/{task_id}/time", response_model=DayTaskResponse, status_code=status.HTTP_200_OK)
-async def update_time(task_id: int, db: SessionDep, task: DayTaskTimeUpdate):
-    update_task = await db.get(DayTask, task_id, options=[joinedload(DayTask.task)])
-
-    if update_task is None:
-        raise HTTPException(status_code=404, detail="Day task not found")
-
+@router_task.patch("/{day_task_id}/time", response_model=DayTaskResponse, status_code=status.HTTP_200_OK)
+async def update_time(update_task: OwnedDayTask, db: SessionDep, task: DayTaskTimeUpdate):
     update_task.time = task.time
     await db.commit()
-    await db.refresh(update_task)
-    logger.info(f"Time with id: {task_id}, successfully updated")
+    logger.info(f"Time with id: {update_task.id}, successfully updated")
     return update_task
 
-@router_task.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_block(task_id: int, db: SessionDep):
-    delete_task = await db.get(Task, task_id)
+@router_task.delete("/{day_task_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_block(delete_task: OwnedDayTask, db: SessionDep):
     await db.delete(delete_task)
     await db.commit()
-    logger.info(f"Data with id: {task_id}, successfully deleted")
+    logger.info(f"Data with id: {delete_task.id}, successfully deleted")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+@router_task.get("/username", response_model=UserResponse, status_code=status.HTTP_200_OK)
+async def get_user(current_user: CurrentUser):
+    return current_user
