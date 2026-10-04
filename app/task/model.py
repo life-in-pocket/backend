@@ -33,3 +33,4 @@ class DayTask(Base):
     description: Mapped[str | None] = mapped_column(nullable=True, default=None)
 
     task: Mapped["Task"] = relationship(back_populates="day_tasks")
+

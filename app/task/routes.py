@@ -2,12 +2,12 @@ from fastapi import APIRouter, Depends, status, Response, HTTPException
 from typing import Annotated
 from sqlalchemy import select
 from loguru import logger
-from sqlalchemy.orm import joinedload, contains_eager
+from sqlalchemy.orm import contains_eager
 
 from app.dependencies import SessionDep, CurrentUser
-from app.task.schema import DayTaskResponse, BlockCreate, DayTaskTimeUpdate, DayTaskDescriptionUpdate
+from app.task.schema import DayTaskResponse, BlockCreate, DayTaskTimeUpdate, DayTaskDescriptionUpdate, BlockStatisticResponse
 from app.task.model import Task, DayTask
-from app.task.service import OwnedDayTask
+from app.task.service import OwnedDayTask, statistic_query
 import datetime
 
 from app.user.schema import UserResponse
@@ -88,3 +88,9 @@ async def delete_block(delete_task: OwnedDayTask, db: SessionDep):
 @router_task.get("/username", response_model=UserResponse, status_code=status.HTTP_200_OK)
 async def get_user(current_user: CurrentUser):
     return current_user
+
+@router_task.get("/statistic", response_model=list[BlockStatisticResponse], status_code=status.HTTP_200_OK)
+async def get_statistic(first_date: datetime.date, last_date: datetime.date, db: SessionDep, current_user: CurrentUser):
+    statistic_data = await statistic_query(first_date, last_date, db, current_user)
+    logger.info(f"Data with successfully fetched")
+    return statistic_data

@@ -52,3 +52,11 @@ class DayTaskTimeUpdate(BaseModel):
 
 class DayTaskDescriptionUpdate(BaseModel):
     description: str | None = Field(default=None, max_length=2000)
+
+class DayRecord(BaseModel):
+    date: datetime.date
+    time: float
+
+class BlockStatisticResponse(BaseModel):
+    title: str
+    records: list[DayRecord]
