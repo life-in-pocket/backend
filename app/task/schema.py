@@ -49,7 +49,6 @@ class BlockUpdate(BaseModel):
 class DayTaskTimeUpdate(BaseModel):
     time: float = Field(ge=0.0, le=24)
 
-
 class DayTaskDescriptionUpdate(BaseModel):
     description: str | None = Field(default=None, max_length=2000)
 
