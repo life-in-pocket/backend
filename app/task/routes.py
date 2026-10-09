@@ -65,15 +65,15 @@ async def change_block(changed_task: OwnedDayTask, db: SessionDep, block: BlockC
     return changed_task
 
 @router_task.put("/{day_task_id}/description", response_model=DayTaskResponse, status_code=status.HTTP_200_OK)
-async def update_description(update_task: OwnedDayTask, db: SessionDep, task: DayTaskDescriptionUpdate):
-    update_task.description = task.description
+async def update_description(update_task: OwnedDayTask, db: SessionDep, description_data: DayTaskDescriptionUpdate):
+    update_task.description = description_data.description
     await db.commit()
     logger.info(f"Description with id: {update_task.id}, successfully updated")
     return update_task
 
 @router_task.patch("/{day_task_id}/time", response_model=DayTaskResponse, status_code=status.HTTP_200_OK)
-async def update_time(update_task: OwnedDayTask, db: SessionDep, task: DayTaskTimeUpdate):
-    update_task.time = task.time
+async def update_time(update_task: OwnedDayTask, db: SessionDep, time_data: DayTaskTimeUpdate):
+    update_task.time = time_data.time
     await db.commit()
     logger.info(f"Time with id: {update_task.id}, successfully updated")
     return update_task
@@ -85,7 +85,7 @@ async def delete_block(delete_task: OwnedDayTask, db: SessionDep):
     logger.info(f"Data with id: {delete_task.id}, successfully deleted")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-@router_task.get("/username", response_model=UserResponse, status_code=status.HTTP_200_OK)
+@router_task.get("/user", response_model=UserResponse, status_code=status.HTTP_200_OK)
 async def get_user(current_user: CurrentUser):
     return current_user
 
