@@ -59,3 +59,7 @@ class DayRecord(BaseModel):
 class BlockStatisticResponse(BaseModel):
     title: str
     records: list[DayRecord]
+
+class CircleStatisticResponse(BaseModel):
+    name: str
+    uv: float

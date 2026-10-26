@@ -2,7 +2,7 @@ from collections import defaultdict
 import datetime
 
 from fastapi import HTTPException, Depends
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import contains_eager
 from typing import Annotated
 
@@ -47,5 +47,24 @@ async def statistic_query(first_date: datetime.date, last_date: datetime.date, d
         for title, records in grouped.items()
     ]
 
+async def statistic_circle_query(first_date: datetime.date, last_date: datetime.date, db: SessionDep, user: CurrentUser):
+    stmt = (
+        select(
+            Task.title,
+            func.sum(DayTask.time).label("uv")
+        )
+        .join(DayTask.task)
+        .where(Task.owner_id == user.id)
+        .where(DayTask.date >= first_date, DayTask.date <= last_date)
+        .order_by(Task.title)
+        .group_by(Task.title)
+    )
+
+    result = await db.execute(stmt)
+
+    return [
+        {"name": row.title, "uv": row.uv}
+        for row in result
+    ]
 
 OwnedDayTask = Annotated[DayTask, Depends(get_owned_day_task)]
