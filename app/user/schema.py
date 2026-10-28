@@ -1,4 +1,5 @@
 from pydantic import BaseModel, ConfigDict, EmailStr
+from typing import List
 
 class UserBase(BaseModel):
     username: str
@@ -19,3 +20,6 @@ class UserResponse(UserBase):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+class VerifyIn(BaseModel):
+    token: str

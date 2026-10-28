@@ -1,13 +1,12 @@
 from fastapi import APIRouter, Depends, status, Response, HTTPException
-from typing import Annotated
 from sqlalchemy import select
 from loguru import logger
 from sqlalchemy.orm import contains_eager
 
 from app.dependencies import SessionDep, CurrentUser
-from app.task.schema import DayTaskResponse, BlockCreate, DayTaskTimeUpdate, DayTaskDescriptionUpdate, BlockStatisticResponse
+from app.task.schema import DayTaskResponse, BlockCreate, DayTaskTimeUpdate, DayTaskDescriptionUpdate, BlockStatisticResponse, CircleStatisticResponse
 from app.task.model import Task, DayTask
-from app.task.service import OwnedDayTask, statistic_query
+from app.task.service import OwnedDayTask, statistic_query, statistic_circle_query
 import datetime
 
 from app.user.schema import UserResponse
@@ -92,5 +91,11 @@ async def get_user(current_user: CurrentUser):
 @router_task.get("/statistic", response_model=list[BlockStatisticResponse], status_code=status.HTTP_200_OK)
 async def get_statistic(first_date: datetime.date, last_date: datetime.date, db: SessionDep, current_user: CurrentUser):
     statistic_data = await statistic_query(first_date, last_date, db, current_user)
+    logger.info(f"Data with successfully fetched")
+    return statistic_data
+
+@router_task.get("/circle-statistic", response_model=list[CircleStatisticResponse], status_code=status.HTTP_200_OK)
+async def get_circle_statistic(first_date: datetime.date, last_date: datetime.date, db: SessionDep, current_user: CurrentUser):
+    statistic_data = await statistic_circle_query(first_date, last_date, db, current_user)
     logger.info(f"Data with successfully fetched")
     return statistic_data
