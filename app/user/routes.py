@@ -43,12 +43,12 @@ async def login(user_login: UserLogin, db: SessionDep):
 
 @router_user.post("/email")
 async def simple_send(email: EmailSchema) -> JSONResponse:
-    email = email.adresses
+    email_send = email.adresses
 
     html = "<p>Hi this test mail, thanks for using Fastapi-mail</p> "
 
     message = create_message(
-        recipients=email,
+        recipients=email_send,
         subject="Fastapi-mail",
         body=html
     )
