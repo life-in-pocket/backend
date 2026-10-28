@@ -3,10 +3,11 @@ from sqlalchemy import select
 from datetime import datetime, timezone, timedelta
 
 from app.dependencies import SessionDep
-from app.user.schema import UserResponse, UserCreate, Token, UserLogin
+from app.user.schema import UserResponse, UserCreate, Token, UserLogin, VerifyIn
 from app.user.model import User
 from app.user.service import create_verification_token, hash_token, send_verification_email, send_welcome_email
 from app.core.security import hash_password, verify_password, create_access_token
+from app.core.config import settings
 
 router_user = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -47,10 +48,10 @@ async def login(user_login: UserLogin, db: SessionDep):
     token = create_access_token({"sub": str(user.id)})
     return Token(access_token=token, token_type="bearer")
 
-@router_user.get("/verify")
-async def verify_email(token: str, background: BackgroundTasks, db: SessionDep):
+@router_user.post("/verify")
+async def verify_email(verify: VerifyIn, background: BackgroundTasks, db: SessionDep):
     user = await db.scalar(
-        select(User).where(User.verification_token_hash == hash_token(token))
+        select(User).where(User.verification_token_hash == hash_token(verify.token))
     )
     if user is None or user.verification_token_expires_at < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Invalid or expired token")
@@ -60,5 +61,6 @@ async def verify_email(token: str, background: BackgroundTasks, db: SessionDep):
     user.verification_token_expires_at = None
     await db.commit()
 
-    background.add_task(send_welcome_email, user.email, user.username)
+    if settings.SEND_WELCOME_EMAIL:
+        background.add_task(send_welcome_email, user.email, user.username)
     return {"message": "Email verified"}
