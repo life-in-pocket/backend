@@ -6,6 +6,8 @@ class Settings(BaseSettings):
         "http://localhost:3000",
     ]
 
+    FRONTEND_URL: str = "http://localhost:5173"
+
     DATABASE_URL: str
     SECRET_KEY: str
     ALGORITHM: str

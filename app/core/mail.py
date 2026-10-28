@@ -1,4 +1,4 @@
-from fastapi_mail import FastMail, ConnectionConfig
+from fastapi_mail import FastMail, ConnectionConfig, MessageSchema, MessageType
 from app.core.config import settings
 from pathlib import Path
 
@@ -20,4 +20,12 @@ mail_config = ConnectionConfig(
 
 mail = FastMail(config=mail_config)
 
+async def send_email(*, to: str, subject: str, template_name: str, context: dict) -> None:
+    message = MessageSchema(
+        subject=subject,
+        recipients=[to],
+        template_body=context,
+        subtype=MessageType.html,
+    )
+    await mail.send_message(message, template_name=template_name)
 
