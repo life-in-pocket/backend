@@ -8,6 +8,8 @@ class Settings(BaseSettings):
 
     FRONTEND_URL: str = "http://localhost:5173"
 
+    REDIS_URL: str
+
     DATABASE_URL: str
     SECRET_KEY: str
     ALGORITHM: str
