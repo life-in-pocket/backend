@@ -49,3 +49,10 @@ async def send_welcome_email(email: str, username: str) -> None:
         )
     except Exception:
         logger.exception("Failed to send welcome email to %s", email)
+
+def as_utc(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value

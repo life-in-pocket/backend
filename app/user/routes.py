@@ -6,7 +6,7 @@ from app.core.redis import redis_client
 from app.dependencies import SessionDep
 from app.user.schema import UserResponse, UserCreate, Token, UserLogin, VerifyIn, EmailIn
 from app.user.model import User
-from app.user.service import create_verification_token, hash_token, send_verification_email, send_welcome_email
+from app.user.service import create_verification_token, hash_token, send_verification_email, send_welcome_email, as_utc
 from app.core.security import hash_password, verify_password, create_access_token
 from app.core.config import settings
 
@@ -45,7 +45,7 @@ async def register(user: UserCreate, db: SessionDep, background_tasks: Backgroun
 async def login(user_login: UserLogin, db: SessionDep):
     attempts_key = f"login_attempts:{user_login.email.lower()}"
 
-    attempts = int(await redis_client.get(attempts_key))
+    attempts = int(await redis_client.get(attempts_key) or 0)
     if attempts >= MAX_LOGIN_ATTEMPTS:
         raise HTTPException(status_code=429, detail="Too many attempts. Try again later.")
 
@@ -69,7 +69,8 @@ async def verify_email(verify: VerifyIn, background: BackgroundTasks, db: Sessio
     user = await db.scalar(
         select(User).where(User.verification_token_hash == hash_token(verify.token))
     )
-    if user is None or user.verification_token_expires_at < datetime.now(timezone.utc):
+    expires = as_utc(user.verification_token_expires_at) if user else None
+    if user is None or expires is None or expires < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Invalid or expired token")
 
     user.email_verified = True
