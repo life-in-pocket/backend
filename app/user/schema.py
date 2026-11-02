@@ -23,3 +23,6 @@ class Token(BaseModel):
 
 class VerifyIn(BaseModel):
     token: str
+
+class EmailIn(BaseModel):
+    email: EmailStr
