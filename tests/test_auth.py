@@ -33,3 +33,4 @@ async def test_wrong_password(client):
         json={"email": PAYLOAD["email"], "password": "wrong"},
     )
     assert response.status_code == 401
+

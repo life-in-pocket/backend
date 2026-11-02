@@ -7,7 +7,7 @@ from sqlalchemy.pool import StaticPool
 from app.main import app
 from app.dependencies import get_db
 from app.database import Base
-from app.user.model import User  # noqa: F401  (реєструє таблицю в Base.metadata)
+from app.user.model import User
 from app.user import routes as user_routes
 from app.core import redis as redis_module
 
