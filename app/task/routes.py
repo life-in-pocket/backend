@@ -19,6 +19,18 @@ async def get_block(date: datetime.date, db: SessionDep, current_user: CurrentUs
         select(DayTask)
         .join(DayTask.task)
         .where(DayTask.date == date, Task.owner_id == current_user.id)
+        .where(DayTask.is_active == True)
+        .options(contains_eager(DayTask.task))
+    )
+    result = await db.scalars(stmt)
+    return result.all()
+
+@router_task.get("/{date}/all-tasks", response_model=list[DayTaskResponse], status_code=status.HTTP_200_OK)
+async def get_all_tasks(db: SessionDep, current_user: CurrentUser):
+    stmt = (
+        select(DayTask)
+        .join(DayTask.task)
+        .where(DayTask.date == current_user.id, Task.owner_id == current_user.id)
         .options(contains_eager(DayTask.task))
     )
     result = await db.scalars(stmt)
@@ -26,6 +38,17 @@ async def get_block(date: datetime.date, db: SessionDep, current_user: CurrentUs
 
 @router_task.post("/day-tasks", response_model=DayTaskResponse, status_code=status.HTTP_201_CREATED)
 async def create_block(task: BlockCreate, db: SessionDep, user: CurrentUser):
+    stmt = (
+        select(DayTask)
+        .join(DayTask.task)
+        .where(Task.title == task.title, Task.owner_id == user.id)
+        .options(contains_eager(DayTask.task))
+    )
+    task = await db.scalar(stmt)
+
+    if task:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Task already exists")
+
     new_task = Task(
         owner_id=user.id,
         title=task.title,
@@ -59,6 +82,7 @@ async def change_block(changed_task: OwnedDayTask, db: SessionDep, block: BlockC
     changed_task.task.title = block.title
     changed_task.time = block.time
     changed_task.target = block.target
+    changed_task.is_active = block.active
     await db.commit()
     logger.info(f"Data with id: {changed_task.id}, successfully updated")
     return changed_task
