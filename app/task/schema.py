@@ -63,3 +63,6 @@ class BlockStatisticResponse(BaseModel):
 class CircleStatisticResponse(BaseModel):
     name: str
     uv: float
+
+class DayTaskActiveUpdate(BaseModel):
+    status: bool
